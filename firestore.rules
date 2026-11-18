@@ -1,0 +1,371 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isRating(val) {
+      return val is int && val >= 1 && val <= 5;
+    }
+
+    // --- VALIDATION HELPERS ---
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.phone is string && data.phone.size() <= 20 &&
+             data.gender is string && data.gender.size() <= 24 &&
+             data.age is int && data.age >= 0 && data.age <= 120 &&
+             data.bloodGroup is string && data.bloodGroup.size() <= 10 &&
+             data.division is string && data.division.size() <= 60 &&
+             data.district is string && data.district.size() <= 60 &&
+             data.area is string && data.area.size() <= 80 &&
+             data.emergencyContactName is string && data.emergencyContactName.size() <= 80 &&
+             data.emergencyContactPhone is string && data.emergencyContactPhone.size() <= 20 &&
+             data.language in ['en', 'bn'] &&
+             data.use24HourTime is bool &&
+             data.darkMode in ['system', 'light', 'dark'] &&
+             data.notifyConfirmations is bool &&
+             data.notifyReminders is bool &&
+             data.notifyAnnouncements is bool &&
+             (!('photoUri' in data) || (data.photoUri is string && data.photoUri.size() <= 500)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidFavoriteItem(data) {
+      return data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
+             data.targetType in ['hospital', 'doctor', 'diagnostic'] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.subtitle is string && data.subtitle.size() <= 160 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidMedicalRecord(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.recordType in ['Prescription', 'Lab Report', 'Imaging', 'Discharge Summary'] &&
+             data.facilityName is string && data.facilityName.size() <= 120 &&
+             data.recordDate is string && data.recordDate.size() >= 1 && data.recordDate.size() <= 30 &&
+             data.notes is string && data.notes.size() <= 500 &&
+             (!('attachmentUri' in data) || (data.attachmentUri is string && data.attachmentUri.size() <= 500)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAppNotification(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.body is string && data.body.size() >= 1 && data.body.size() <= 400 &&
+             data.category in ['appointment', 'diagnostic', 'schedule', 'announcement'] &&
+             data.read is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAppointment(data) {
+      return data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128 &&
+             data.doctorId is string && data.doctorId.size() >= 1 && data.doctorId.size() <= 128 &&
+             data.doctorName is string && data.doctorName.size() >= 1 && data.doctorName.size() <= 120 &&
+             data.specialization is string && data.specialization.size() >= 1 && data.specialization.size() <= 80 &&
+             data.hospitalId is string && data.hospitalId.size() >= 1 && data.hospitalId.size() <= 128 &&
+             data.hospitalName is string && data.hospitalName.size() >= 1 && data.hospitalName.size() <= 140 &&
+             data.chamberName is string && data.chamberName.size() >= 1 && data.chamberName.size() <= 140 &&
+             data.appointmentDate is string && data.appointmentDate.size() >= 1 && data.appointmentDate.size() <= 20 &&
+             data.slotTime is string && data.slotTime.size() >= 1 && data.slotTime.size() <= 30 &&
+             data.slotKey is string && data.slotKey.size() >= 1 && data.slotKey.size() <= 180 &&
+             data.patientName is string && data.patientName.size() >= 1 && data.patientName.size() <= 80 &&
+             data.patientPhone is string && data.patientPhone.size() >= 1 && data.patientPhone.size() <= 20 &&
+             data.consultationFeeBdt is int && data.consultationFeeBdt >= 0 && data.consultationFeeBdt <= 50000 &&
+             data.notes is string && data.notes.size() <= 400 &&
+             data.status in ['pending', 'confirmed', 'completed', 'cancelled'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTestBooking(data) {
+      return data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128 &&
+             data.testId is string && data.testId.size() >= 1 && data.testId.size() <= 128 &&
+             data.testName is string && data.testName.size() >= 1 && data.testName.size() <= 120 &&
+             data.centerId is string && data.centerId.size() >= 1 && data.centerId.size() <= 128 &&
+             data.centerName is string && data.centerName.size() >= 1 && data.centerName.size() <= 140 &&
+             data.bookingDate is string && data.bookingDate.size() >= 1 && data.bookingDate.size() <= 20 &&
+             data.timeWindow is string && data.timeWindow.size() >= 1 && data.timeWindow.size() <= 40 &&
+             data.homeCollection is bool &&
+             data.collectionAddress is string && data.collectionAddress.size() <= 250 &&
+             data.patientName is string && data.patientName.size() >= 1 && data.patientName.size() <= 80 &&
+             data.patientPhone is string && data.patientPhone.size() >= 1 && data.patientPhone.size() <= 20 &&
+             data.priceBdt is int && data.priceBdt >= 0 && data.priceBdt <= 200000 &&
+             data.status in ['pending', 'confirmed', 'completed', 'cancelled'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidReview(data) {
+      return data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128 &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+             data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
+             data.targetType in ['hospital', 'doctor', 'diagnostic'] &&
+             isRating(data.overallRating) &&
+             isRating(data.doctorBehaviorRating) &&
+             isRating(data.staffBehaviorRating) &&
+             isRating(data.waitingTimeRating) &&
+             isRating(data.cleanlinessRating) &&
+             data.comment is string && data.comment.size() >= 3 && data.comment.size() <= 600 &&
+             data.verifiedBooking is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidReviewReport(data) {
+      return data.userId is string && data.userId == request.auth.uid && data.userId.size() <= 128 &&
+             data.reviewId is string && isValidId(data.reviewId) &&
+             data.reason is string && data.reason.size() >= 3 && data.reason.size() <= 200 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- USER PROFILE & PRIVATE SUBCOLLECTIONS ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'email', 'phone', 'gender', 'age', 'bloodGroup',
+                         'division', 'district', 'area', 'emergencyContactName', 'emergencyContactPhone',
+                         'language', 'use24HourTime', 'darkMode', 'notifyConfirmations', 'notifyReminders',
+                         'notifyAnnouncements', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'phone', 'gender', 'age', 'bloodGroup',
+                         'division', 'district', 'area', 'emergencyContactName', 'emergencyContactPhone',
+                         'language', 'use24HourTime', 'darkMode', 'notifyConfirmations', 'notifyReminders',
+                         'notifyAnnouncements', 'photoUri', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'phone', 'gender', 'age', 'bloodGroup',
+                         'division', 'district', 'area', 'emergencyContactName', 'emergencyContactPhone',
+                         'language', 'use24HourTime', 'darkMode', 'notifyConfirmations', 'notifyReminders',
+                         'notifyAnnouncements', 'photoUri', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /favorites/{favoriteId} {
+        allow get: if isSignedIn() && isValidId(favoriteId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() &&
+                         isValidId(favoriteId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll(['targetId', 'targetType', 'title', 'subtitle', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['targetId', 'targetType', 'title', 'subtitle', 'createdAt', 'updatedAt']) &&
+                         isValidFavoriteItem(incoming());
+        allow update: if isSignedIn() &&
+                         isValidId(favoriteId) &&
+                         request.auth.uid == userId &&
+                         isValidFavoriteItem(incoming()) &&
+                         incoming().targetId == existing().targetId &&
+                         incoming().targetType == existing().targetType &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'subtitle', 'updatedAt']);
+        allow delete: if isSignedIn() && isValidId(favoriteId) && request.auth.uid == userId;
+      }
+
+      match /medicalRecords/{recordId} {
+        allow get: if isSignedIn() && isValidId(recordId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() &&
+                         isValidId(recordId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll(['title', 'recordType', 'facilityName', 'recordDate', 'notes', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['title', 'recordType', 'facilityName', 'recordDate', 'notes', 'attachmentUri', 'createdAt', 'updatedAt']) &&
+                         isValidMedicalRecord(incoming());
+        allow update: if isSignedIn() &&
+                         isValidId(recordId) &&
+                         request.auth.uid == userId &&
+                         isValidMedicalRecord(incoming()) &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'recordType', 'facilityName', 'recordDate', 'notes', 'attachmentUri', 'updatedAt']);
+        allow delete: if isSignedIn() && isValidId(recordId) && request.auth.uid == userId;
+      }
+
+      match /notifications/{notificationId} {
+        allow get: if isSignedIn() && isValidId(notificationId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() &&
+                         isValidId(notificationId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll(['title', 'body', 'category', 'read', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['title', 'body', 'category', 'read', 'createdAt', 'updatedAt']) &&
+                         isValidAppNotification(incoming());
+        allow update: if isSignedIn() &&
+                         isValidId(notificationId) &&
+                         request.auth.uid == userId &&
+                         isValidAppNotification(incoming()) &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']);
+        allow delete: if isSignedIn() && isValidId(notificationId) && request.auth.uid == userId;
+      }
+    }
+
+    // --- APPOINTMENTS ---
+    match /appointments/{appointmentId} {
+      allow get: if isSignedIn() && isValidId(appointmentId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(appointmentId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'doctorId', 'doctorName', 'specialization', 'hospitalId', 'hospitalName',
+                         'chamberName', 'appointmentDate', 'slotTime', 'slotKey', 'patientName', 'patientPhone',
+                         'consultationFeeBdt', 'notes', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'doctorId', 'doctorName', 'specialization', 'hospitalId', 'hospitalName',
+                         'chamberName', 'appointmentDate', 'slotTime', 'slotKey', 'patientName', 'patientPhone',
+                         'consultationFeeBdt', 'notes', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().status in ['pending', 'confirmed'] &&
+                       isValidAppointment(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(appointmentId) &&
+                       isValidAppointment(incoming()) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().doctorId == existing().doctorId &&
+                       incoming().hospitalId == existing().hospitalId &&
+                       incoming().createdAt == existing().createdAt &&
+                       !(existing().status in ['completed', 'cancelled']) &&
+                       (
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['appointmentDate', 'slotTime', 'slotKey', 'notes', 'status', 'updatedAt'])) ||
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+                       );
+
+      allow delete: if isSignedIn() && isValidId(appointmentId) && existing().userId == request.auth.uid;
+    }
+
+    // --- DIAGNOSTIC TEST BOOKINGS ---
+    match /testBookings/{bookingId} {
+      allow get: if isSignedIn() && isValidId(bookingId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(bookingId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'testId', 'testName', 'centerId', 'centerName', 'bookingDate',
+                         'timeWindow', 'homeCollection', 'collectionAddress', 'patientName', 'patientPhone',
+                         'priceBdt', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'testId', 'testName', 'centerId', 'centerName', 'bookingDate',
+                         'timeWindow', 'homeCollection', 'collectionAddress', 'patientName', 'patientPhone',
+                         'priceBdt', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().status in ['pending', 'confirmed'] &&
+                       isValidTestBooking(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(bookingId) &&
+                       isValidTestBooking(incoming()) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().testId == existing().testId &&
+                       incoming().centerId == existing().centerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       !(existing().status in ['completed', 'cancelled']) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['bookingDate', 'timeWindow', 'homeCollection', 'collectionAddress', 'status', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(bookingId) && existing().userId == request.auth.uid;
+    }
+
+    // --- COMMUNITY REVIEWS (PUBLIC READ FOR SIGNED-IN USERS, AUTHOR WRITE) ---
+    match /reviews/{reviewId} {
+      allow get: if isSignedIn() && isValidId(reviewId);
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.targetType in ['hospital', 'doctor', 'diagnostic']
+      );
+
+      allow create: if isSignedIn() &&
+                       isValidId(reviewId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'authorName', 'targetId', 'targetType', 'overallRating',
+                         'doctorBehaviorRating', 'staffBehaviorRating', 'waitingTimeRating',
+                         'cleanlinessRating', 'comment', 'verifiedBooking', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'authorName', 'targetId', 'targetType', 'overallRating',
+                         'doctorBehaviorRating', 'staffBehaviorRating', 'waitingTimeRating',
+                         'cleanlinessRating', 'comment', 'verifiedBooking', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidReview(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(reviewId) &&
+                       isValidReview(incoming()) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().targetId == existing().targetId &&
+                       incoming().targetType == existing().targetType &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'overallRating', 'doctorBehaviorRating', 'staffBehaviorRating',
+                         'waitingTimeRating', 'cleanlinessRating', 'comment', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(reviewId) && existing().userId == request.auth.uid;
+    }
+
+    // --- REVIEW MODERATION REPORTS ---
+    match /reviewReports/{reportId} {
+      allow get: if isSignedIn() && isValidId(reportId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(reportId) &&
+                       incoming().keys().hasAll(['userId', 'reviewId', 'reason', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'reviewId', 'reason', 'createdAt', 'updatedAt']) &&
+                       isValidReviewReport(incoming()) &&
+                       exists(/databases/$(database)/documents/reviews/$(incoming().reviewId));
+
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(reportId) && existing().userId == request.auth.uid;
+    }
+  }
+}

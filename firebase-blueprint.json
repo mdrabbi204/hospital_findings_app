@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated patient profile, Bangladesh location preferences, emergency contact, and app settings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the user." },
+        "displayName": { "type": "string", "description": "Full display name." },
+        "email": { "type": "string", "description": "Google account email." },
+        "phone": { "type": "string", "description": "Bangladesh mobile number." },
+        "gender": { "type": "string", "description": "User gender." },
+        "age": { "type": "integer", "description": "User age in years." },
+        "bloodGroup": { "type": "string", "description": "Blood group such as A+, B+, O+." },
+        "division": { "type": "string", "description": "Selected Bangladesh division." },
+        "district": { "type": "string", "description": "Selected Bangladesh district." },
+        "area": { "type": "string", "description": "Selected Thana or area." },
+        "emergencyContactName": { "type": "string", "description": "Emergency contact person name." },
+        "emergencyContactPhone": { "type": "string", "description": "Emergency contact phone number." },
+        "language": { "type": "string", "enum": ["en", "bn"], "description": "Preferred UI language." },
+        "use24HourTime": { "type": "boolean", "description": "Prefer 24-hour BST display." },
+        "darkMode": { "type": "string", "enum": ["system", "light", "dark"], "description": "Theme mode." },
+        "notifyConfirmations": { "type": "boolean", "description": "Booking confirmations preference." },
+        "notifyReminders": { "type": "boolean", "description": "Appointment reminders preference." },
+        "notifyAnnouncements": { "type": "boolean", "description": "Health announcements preference." },
+        "photoUri": { "type": "string", "description": "Optional local or remote photo URI." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update." }
+      },
+      "required": [
+        "userId", "displayName", "email", "phone", "gender", "age", "bloodGroup",
+        "division", "district", "area", "emergencyContactName", "emergencyContactPhone",
+        "language", "use24HourTime", "darkMode", "notifyConfirmations", "notifyReminders",
+        "notifyAnnouncements", "createdAt", "updatedAt"
+      ]
+    },
+    "FavoriteItem": {
+      "title": "FavoriteItem",
+      "description": "User-saved hospital, doctor, or diagnostic center.",
+      "type": "object",
+      "properties": {
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["hospital", "doctor", "diagnostic"] },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["targetId", "targetType", "title", "subtitle", "createdAt", "updatedAt"]
+    },
+    "MedicalRecord": {
+      "title": "MedicalRecord",
+      "description": "Personal uploaded prescription or lab report metadata.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "recordType": { "type": "string", "enum": ["Prescription", "Lab Report", "Imaging", "Discharge Summary"] },
+        "facilityName": { "type": "string" },
+        "recordDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "attachmentUri": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "recordType", "facilityName", "recordDate", "notes", "createdAt", "updatedAt"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "In-app notification entry for bookings, reminders, and schedule updates.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "category": { "type": "string", "enum": ["appointment", "diagnostic", "schedule", "announcement"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "body", "category", "read", "createdAt", "updatedAt"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Doctor chamber appointment booking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "specialization": { "type": "string" },
+        "hospitalId": { "type": "string" },
+        "hospitalName": { "type": "string" },
+        "chamberName": { "type": "string" },
+        "appointmentDate": { "type": "string" },
+        "slotTime": { "type": "string" },
+        "slotKey": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientPhone": { "type": "string" },
+        "consultationFeeBdt": { "type": "integer" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "doctorId", "doctorName", "specialization", "hospitalId", "hospitalName",
+        "chamberName", "appointmentDate", "slotTime", "slotKey", "patientName", "patientPhone",
+        "consultationFeeBdt", "notes", "status", "createdAt", "updatedAt"
+      ]
+    },
+    "TestBooking": {
+      "title": "TestBooking",
+      "description": "Diagnostic test booking with optional home sample collection.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "testId": { "type": "string" },
+        "testName": { "type": "string" },
+        "centerId": { "type": "string" },
+        "centerName": { "type": "string" },
+        "bookingDate": { "type": "string" },
+        "timeWindow": { "type": "string" },
+        "homeCollection": { "type": "boolean" },
+        "collectionAddress": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientPhone": { "type": "string" },
+        "priceBdt": { "type": "integer" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "testId", "testName", "centerId", "centerName", "bookingDate",
+        "timeWindow", "homeCollection", "collectionAddress", "patientName", "patientPhone",
+        "priceBdt", "status", "createdAt", "updatedAt"
+      ]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Multi-criteria patient review for hospitals, doctors, or diagnostic centers.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["hospital", "doctor", "diagnostic"] },
+        "overallRating": { "type": "integer" },
+        "doctorBehaviorRating": { "type": "integer" },
+        "staffBehaviorRating": { "type": "integer" },
+        "waitingTimeRating": { "type": "integer" },
+        "cleanlinessRating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "verifiedBooking": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "authorName", "targetId", "targetType", "overallRating",
+        "doctorBehaviorRating", "staffBehaviorRating", "waitingTimeRating",
+        "cleanlinessRating", "comment", "verifiedBooking", "createdAt", "updatedAt"
+      ]
+    },
+    "ReviewReport": {
+      "title": "ReviewReport",
+      "description": "Moderation report submitted by a signed-in user for an inappropriate review.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "reviewId": { "type": "string" },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "reviewId", "reason", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and preferences document."
+    },
+    "/users/{userId}/favorites/{favoriteId}": {
+      "schema": { "$ref": "#/entities/FavoriteItem" },
+      "description": "User's bookmarked hospitals, doctors, and diagnostic centers."
+    },
+    "/users/{userId}/medicalRecords/{recordId}": {
+      "schema": { "$ref": "#/entities/MedicalRecord" },
+      "description": "User's private medical history records."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/AppNotification" },
+      "description": "User's booking and schedule notifications."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/Appointment" },
+      "description": "User-owned doctor appointment bookings."
+    },
+    "/testBookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/TestBooking" },
+      "description": "User-owned diagnostic test bookings."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Community reviews for healthcare facilities and doctors."
+    },
+    "/reviewReports/{reportId}": {
+      "schema": { "$ref": "#/entities/ReviewReport" },
+      "description": "Inappropriate review moderation reports."
+    }
+  }
+}

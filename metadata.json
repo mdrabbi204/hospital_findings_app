@@ -1,0 +1,6 @@
+{
+  "name": "MedCare BD",
+  "description": "Discover hospitals, doctors, diagnostic centers, and emergency healthcare services across Bangladesh with interactive maps, appointment booking, and test comparisons.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
